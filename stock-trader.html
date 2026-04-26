@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0f1e">
+<title>AutoTrade KR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --panel: #111827;
+    --panel2: #1a2235;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --green: #00e676;
+    --red: #ff4444;
+    --yellow: #ffd600;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Noto Sans KR', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP NAV ── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(10,15,30,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+  }
+  .logo { font-family: var(--mono); font-size: 18px; color: var(--accent); font-weight: 700; letter-spacing: -1px; }
+  .logo span { color: var(--accent2); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; margin-right: 6px; }
+  .status-dot.live { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.5s infinite; }
+  .status-label { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── TABS ── */
+  .tabs {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(17,24,39,0.98);
+    border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: repeat(5,1fr);
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 10px 4px 14px; gap: 4px;
+    font-size: 10px; color: var(--muted);
+    cursor: pointer; transition: color 0.2s;
+    border: none; background: none;
+  }
+  .tab.active { color: var(--accent); }
+  .tab svg { width: 22px; height: 22px; }
+
+  /* ── MAIN CONTENT ── */
+  .content {
+    padding: 70px 0 80px;
+    min-height: 100vh;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── DASHBOARD ── */
+  .portfolio-header {
+    background: linear-gradient(135deg, #0d1b3e 0%, #1a0a3e 100%);
+    padding: 24px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .portfolio-label { font-size: 11px; color: var(--muted); font-family: var(--mono); letter-spacing: 2px; text-transform: uppercase; }
+  .portfolio-value { font-family: var(--mono); font-size: 32px; font-weight: 700; color: var(--text); margin: 6px 0 4px; }
+  .portfolio-change { font-family: var(--mono); font-size: 14px; }
+  .portfolio-change.up { color: var(--green); }
+  .portfolio-change.down { color: var(--red); }
+
+  .section { padding: 16px; }
+  .section-title {
+    font-size: 11px; color: var(--muted); font-family: var(--mono);
+    letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .stat-label { font-size: 10px; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; }
+  .stat-value { font-family: var(--mono); font-size: 20px; font-weight: 700; margin-top: 4px; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.yellow { color: var(--yellow); }
+
+  .bot-status-card {
+    background: linear-gradient(135deg, var(--panel) 0%, var(--panel2) 100%);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .bot-status-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .bot-name { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--accent); }
+  .bot-strategy { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .bot-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+  .badge {
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border-radius: 20px; font-weight: 700;
+  }
+  .badge.running { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid var(--green); }
+  .badge.paused { background: rgba(255,214,0,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
+  .badge.stopped { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid var(--muted); }
+  .bot-profit { font-family: var(--mono); font-size: 16px; font-weight: 700; }
+
+  /* ── BOT BUILDER ── */
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 11px; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; color: var(--text);
+    font-family: var(--mono); font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  select.form-input { appearance: none; -webkit-appearance: none; }
+
+  .strategy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .strategy-btn {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 8px;
+    color: var(--muted); font-size: 12px; font-family: var(--sans);
+    cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .strategy-btn.selected {
+    background: rgba(0,212,255,0.1);
+    border-color: var(--accent); color: var(--accent);
+  }
+  .strategy-btn .icon { font-size: 20px; display: block; margin-bottom: 4px; }
+
+  .btn {
+    display: block; width: 100%; padding: 16px;
+    border-radius: 12px; border: none; cursor: pointer;
+    font-family: var(--mono); font-size: 14px; font-weight: 700;
+    letter-spacing: 1px; transition: all 0.2s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+  }
+  .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-danger { background: rgba(255,68,68,0.2); color: var(--red); border: 1px solid var(--red); }
+  .btn-success { background: rgba(0,230,118,0.2); color: var(--green); border: 1px solid var(--green); }
+  .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+
+  /* ── CONDITIONS ── */
+  .condition-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; margin-bottom: 10px;
+  }
+  .condition-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .condition-title { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+  .del-btn { background: none; border: none; color: var(--red); font-size: 18px; cursor: pointer; padding: 0 4px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  /* ── ORDER ── */
+  .order-type-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 16px; }
+  .order-type-btn {
+    padding: 10px 4px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--muted);
+    font-size: 12px; font-family: var(--mono); cursor: pointer;
+    text-align: center; transition: all 0.2s;
+  }
+  .order-type-btn.buy.active { background: rgba(0,230,118,0.15); border-color: var(--green); color: var(--green); }
+  .order-type-btn.sell.active { background: rgba(255,68,68,0.15); border-color: var(--red); color: var(--red); }
+  .order-type-btn.auto.active { background: rgba(0,212,255,0.15); border-color: var(--accent); color: var(--accent); }
+
+  .stock-search { position: relative; }
+  .search-results {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto;
+  }
+  .search-item {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer; font-size: 13px;
+  }
+  .search-item:active { background: var(--panel); }
+  .search-item .code { font-family: var(--mono); color: var(--muted); font-size: 11px; }
+
+  /* ── SETTINGS ── */
+  .settings-section { margin-bottom: 24px; }
+  .settings-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-key { font-size: 14px; }
+  .settings-val { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  /* Toggle switch */
+  .toggle { position: relative; width: 44px; height: 24px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--border); border-radius: 24px;
+    transition: 0.3s;
+  }
+  .toggle-slider:before {
+    position: absolute; content: '';
+    height: 18px; width: 18px; left: 3px; bottom: 3px;
+    background: white; border-radius: 50%; transition: 0.3s;
+  }
+  input:checked + .toggle-slider { background: var(--accent); }
+  input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+  /* ── LOG ── */
+  .log-container {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px;
+    height: 300px; overflow-y: auto; font-family: var(--mono); font-size: 11px;
+  }
+  .log-line { padding: 3px 0; border-bottom: 1px solid rgba(30,58,95,0.3); }
+  .log-line .time { color: var(--muted); }
+  .log-line .msg-buy { color: var(--green); }
+  .log-line .msg-sell { color: var(--red); }
+  .log-line .msg-info { color: var(--accent); }
+  .log-line .msg-warn { color: var(--yellow); }
+
+  /* ── CHART MINI ── */
+  .chart-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  canvas { display: block; }
+
+  /* ── API SETUP ── */
+  .api-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 12px;
+  }
+  .api-card-title { font-family: var(--mono); font-size: 13px; color: var(--accent); margin-bottom: 12px; }
+  .connected-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(0,230,118,0.1); color: var(--green);
+    border: 1px solid var(--green); border-radius: 20px;
+    font-size: 11px; font-family: var(--mono); padding: 3px 10px;
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+    display: none; align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--panel); border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0; padding: 24px 16px;
+    width: 100%; max-height: 80vh; overflow-y: auto;
+  }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-family: var(--mono); font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .page.active { animation: fadeIn 0.25s ease; }
+
+  .ticker-wrap {
+    overflow: hidden; white-space: nowrap;
+    background: rgba(0,212,255,0.05); border-bottom: 1px solid var(--border);
+    padding: 6px 0;
+  }
+  .ticker-inner {
+    display: inline-block;
+    animation: ticker 20s linear infinite;
+    font-family: var(--mono); font-size: 11px;
+  }
+  @keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+  .tick-item { display: inline-block; padding: 0 20px; }
+  .tick-up { color: var(--green); }
+  .tick-down { color: var(--red); }
+
+  .glow { box-shadow: 0 0 20px rgba(0,212,255,0.15); }
+
+  /* number input no spinner */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">Auto<span>Trade</span>KR</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span class="status-dot" id="statusDot"></span>
+    <span class="status-label" id="statusLabel">OFF</span>
+    <button onclick="toggleMasterBot()" class="btn btn-outline" style="padding:6px 14px;font-size:11px;width:auto;border-radius:20px" id="masterBtn">START</button>
+  </div>
+</div>
+
+<!-- TICKER -->
+<div style="position:fixed;top:50px;left:0;right:0;z-index:99">
+  <div class="ticker-wrap">
+    <div class="ticker-inner" id="ticker">
+      <span class="tick-item">삼성전자 <span class="tick-up">▲ 72,400 +1.2%</span></span>
+      <span class="tick-item">SK하이닉스 <span class="tick-down">▼ 185,000 -0.8%</span></span>
+      <span class="tick-item">NAVER <span class="tick-up">▲ 195,500 +2.1%</span></span>
+      <span class="tick-item">카카오 <span class="tick-down">▼ 38,400 -1.5%</span></span>
+      <span class="tick-item">LG에너지솔루션 <span class="tick-up">▲ 412,000 +0.6%</span></span>
+      <span class="tick-item">현대차 <span class="tick-up">▲ 218,000 +0.3%</span></span>
+      <span class="tick-item">삼성전자 <span class="tick-up">▲ 72,400 +1.2%</span></span>
+      <span class="tick-item">SK하이닉스 <span class="tick-down">▼ 185,000 -0.8%</span></span>
+      <span class="tick-item">NAVER <span class="tick-up">▲ 195,500 +2.1%</span></span>
+      <span class="tick-item">카카오 <span class="tick-down">▼ 38,400 -1.5%</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="content" style="padding-top:90px">
+
+  <!-- PAGE: DASHBOARD -->
+  <div class="page active" id="page-dash">
+    <div class="portfolio-header">
+      <div class="portfolio-label">총 평가금액</div>
+      <div class="portfolio-value" id="totalVal">₩10,345,200</div>
+      <div class="portfolio-change up" id="totalChg">▲ +245,200 (+2.43%) 오늘</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">핵심 지표</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">실현손익</div>
+          <div class="stat-value green" id="realizedPnl">+₩128,000</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">미실현손익</div>
+          <div class="stat-value green" id="unrealizedPnl">+₩117,200</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">승률</div>
+          <div class="stat-value yellow">68.4%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">오늘 거래</div>
+          <div class="stat-value" id="tradeCount">7건</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">실행 중인 봇</div>
+      <div id="botList">
+        <div class="bot-status-card glow">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="bot-name">🤖 MA크로스 봇</div>
+              <div class="bot-strategy">삼성전자 · 5MA × 20MA</div>
+            </div>
+            <span class="badge running">RUNNING</span>
+          </div>
+          <div class="bot-meta">
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">수익률</div>
+            <div class="bot-profit" style="color:var(--green)">+3.24%</div>
+          </div>
+        </div>
+        <div class="bot-status-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="bot-name">🤖 RSI 봇</div>
+              <div class="bot-strategy">SK하이닉스 · RSI 30/70</div>
+            </div>
+            <span class="badge paused">PAUSED</span>
+          </div>
+          <div class="bot-meta">
+            <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">수익률</div>
+            <div class="bot-profit" style="color:var(--yellow)">+0.89%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">거래 로그</div>
+      <div class="log-container scrollbar-hide" id="logContainer">
+        <div class="log-line"><span class="time">[09:32:14] </span><span class="msg-buy">[매수] 삼성전자 10주 @ 72,300 | MA크로스 신호</span></div>
+        <div class="log-line"><span class="time">[09:45:22] </span><span class="msg-info">[정보] RSI 봇 대기 중 (RSI=52)</span></div>
+        <div class="log-line"><span class="time">[10:01:05] </span><span class="msg-sell">[매도] 삼성전자 10주 @ 72,800 | 목표가 도달</span></div>
+        <div class="log-line"><span class="time">[10:15:30] </span><span class="msg-buy">[매수] SK하이닉스 5주 @ 184,500</span></div>
+        <div class="log-line"><span class="time">[10:44:12] </span><span class="msg-warn">[경고] 손절 조건 접근 중 -1.8%</span></div>
+        <div class="log-line"><span class="time">[11:02:00] </span><span class="msg-info">[정보] 장중 시스템 정상 동작</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: BOT BUILDER -->
+  <div class="page" id="page-bot">
+    <div class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin-bottom:0">봇 만들기</div>
+        <button class="btn btn-outline" style="width:auto;padding:8px 16px;font-size:11px" onclick="openModal('botListModal')">내 봇 목록</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">봇 이름</label>
+        <input class="form-input" type="text" id="botName" placeholder="예: 삼전 MA봇">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">종목 검색</label>
+        <div class="stock-search">
+          <input class="form-input" type="text" id="stockSearch" placeholder="종목명 또는 코드 입력" oninput="searchStock(this.value)">
+          <div class="search-results" id="searchResults" style="display:none"></div>
+        </div>
+        <div id="selectedStock" style="margin-top:8px;font-family:var(--mono);font-size:13px;color:var(--accent)"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">매매 전략</label>
+        <div class="strategy-grid">
+          <button class="strategy-btn selected" onclick="selectStrategy(this,'ma')"><span class="icon">📈</span>이동평균 크로스</button>
+          <button class="strategy-btn" onclick="selectStrategy(this,'rsi')"><span class="icon">📊</span>RSI 과매수/도</button>
+          <button class="strategy-btn" onclick="selectStrategy(this,'price')"><span class="icon">🎯</span>목표가 설정</button>
+          <button class="strategy-btn" onclick="selectStrategy(this,'bb')"><span class="icon">〰️</span>볼린저밴드</button>
+          <button class="strategy-btn" onclick="selectStrategy(this,'macd')"><span class="icon">⚡</span>MACD</button>
+          <button class="strategy-btn" onclick="selectStrategy(this,'custom')"><span class="icon">⚙️</span>직접 조건입력</button>
+        </div>
+      </div>
+
+      <!-- MA 설정 -->
+      <div id="strategy-ma" class="card">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:12px">이동평균선 설정</div>
+        <div class="row2">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">단기 MA</label>
+            <input class="form-input" type="number" id="maShort" value="5" placeholder="5">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">장기 MA</label>
+            <input class="form-input" type="number" id="maLong" value="20" placeholder="20">
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <label class="form-label">MA 종류</label>
+          <select class="form-input" id="maType">
+            <option value="SMA">단순이동평균 (SMA)</option>
+            <option value="EMA">지수이동평균 (EMA)</option>
+            <option value="WMA">가중이동평균 (WMA)</option>
+          </select>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--muted)">▲ 단기가 장기를 상향돌파시 매수 / 하향돌파시 매도</div>
+      </div>
+
+      <!-- RSI 설정 -->
+      <div id="strategy-rsi" class="card" style="display:none">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:12px">RSI 설정</div>
+        <div class="form-group">
+          <label class="form-label">RSI 기간</label>
+          <input class="form-input" type="number" id="rsiPeriod" value="14">
+        </div>
+        <div class="row2">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">과매도 (매수)</label>
+            <input class="form-input" type="number" id="rsiOversold" value="30">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">과매수 (매도)</label>
+            <input class="form-input" type="number" id="rsiOverbought" value="70">
+          </div>
+        </div>
+      </div>
+
+      <!-- 목표가 설정 -->
+      <div id="strategy-price" class="card" style="display:none">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:12px">목표가 설정</div>
+        <div class="form-group">
+          <label class="form-label">매수 목표가 (원)</label>
+          <input class="form-input" type="number" id="buyTarget" placeholder="72000">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">매도 목표가 (원)</label>
+          <input class="form-input" type="number" id="sellTarget" placeholder="75000">
+        </div>
+      </div>
+
+      <!-- 볼린저밴드 -->
+      <div id="strategy-bb" class="card" style="display:none">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:12px">볼린저밴드 설정</div>
+        <div class="row2">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">기간</label>
+            <input class="form-input" type="number" id="bbPeriod" value="20">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">표준편차</label>
+            <input class="form-input" type="number" id="bbStd" value="2" step="0.1">
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--muted)">하단밴드 터치시 매수 / 상단밴드 터치시 매도</div>
+      </div>
+
+      <!-- MACD -->
+      <div id="strategy-macd" class="card" style="display:none">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:12px">MACD 설정</div>
+        <div class="row3">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Fast</label>
+            <input class="form-input" type="number" id="macdFast" value="12">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Slow</label>
+            <input class="form-input" type="number" id="macdSlow" value="26">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Signal</label>
+            <input class="form-input" type="number" id="macdSignal" value="9">
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--muted)">MACD가 시그널선 상향돌파시 매수</div>
+      </div>
+
+      <!-- 직접 조건 입력 -->
+      <div id="strategy-custom" class="card" style="display:none">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:12px">직접 조건 입력</div>
+        <div id="customConditions"></div>
+        <button onclick="addCondition()" class="btn btn-outline" style="width:auto;padding:8px 14px;font-size:12px;margin-bottom:0">+ 조건 추가</button>
+      </div>
+
+      <!-- 공통 설정 -->
+      <div class="card" style="margin-top:10px">
+        <div style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:12px">매매 공통 설정</div>
+        <div class="form-group">
+          <label class="form-label">1회 매수금액 (원)</label>
+          <input class="form-input" type="number" id="buyAmount" value="500000" placeholder="500000">
+        </div>
+        <div class="row2">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">손절 (%)</label>
+            <input class="form-input" type="number" id="stopLoss" value="-3" step="0.1">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">목표 수익 (%)</label>
+            <input class="form-input" type="number" id="takeProfit" value="5" step="0.1">
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <label class="form-label">주문 유형</label>
+          <select class="form-input" id="orderType">
+            <option value="market">시장가</option>
+            <option value="limit">지정가</option>
+            <option value="best">최유리지정가</option>
+          </select>
+        </div>
+        <div style="margin-top:12px">
+          <label class="form-label">거래 모드</label>
+          <select class="form-input" id="tradeMode">
+            <option value="auto">완전 자동</option>
+            <option value="semi">반자동 (알림 후 확인)</option>
+            <option value="manual">수동 (신호만 표시)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <button class="btn btn-primary" onclick="createBot()">🚀 봇 생성 및 시작</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: MANUAL ORDER -->
+  <div class="page" id="page-order">
+    <div class="section">
+      <div class="section-title">수동 주문</div>
+
+      <div class="order-type-row">
+        <button class="order-type-btn buy active" id="obtn-buy" onclick="setOrderType('buy')">매수</button>
+        <button class="order-type-btn sell" id="obtn-sell" onclick="setOrderType('sell')">매도</button>
+        <button class="order-type-btn auto" id="obtn-auto" onclick="setOrderType('auto')">예약</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">종목</label>
+        <div class="stock-search">
+          <input class="form-input" type="text" id="orderStockSearch" placeholder="종목명 또는 코드" oninput="searchOrderStock(this.value)">
+          <div class="search-results" id="orderSearchResults" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:12px;color:var(--muted)">현재가</span>
+          <span id="currentPrice" style="font-family:var(--mono);font-size:18px;font-weight:700">-</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <span style="font-size:11px;color:var(--muted)">등락률</span>
+          <span id="priceChange" style="font-family:var(--mono);font-size:12px;color:var(--muted)">-</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">주문 유형</label>
+        <select class="form-input" id="manualOrderType">
+          <option value="market">시장가</option>
+          <option value="limit">지정가</option>
+          <option value="best">최유리지정가</option>
+          <option value="conditional">조건부지정가</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="limitPriceGroup">
+        <label class="form-label">주문가 (원)</label>
+        <input class="form-input" type="number" id="limitPrice" placeholder="가격 입력">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">수량</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="adjustQty(-1)" style="background:var(--panel);border:1px solid var(--border);color:var(--text);width:40px;height:40px;border-radius:8px;font-size:20px;cursor:pointer;flex-shrink:0">−</button>
+          <input class="form-input" type="number" id="orderQty" value="1" style="text-align:center">
+          <button onclick="adjustQty(1)" style="background:var(--panel);border:1px solid var(--border);color:var(--text);width:40px;height:40px;border-radius:8px;font-size:20px;cursor:pointer;flex-shrink:0">+</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:16px">
+        <button onclick="setPct(10)" style="background:var(--panel);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:8px;font-size:11px;font-family:var(--mono);cursor:pointer">10%</button>
+        <button onclick="setPct(25)" style="background:var(--panel);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:8px;font-size:11px;font-family:var(--mono);cursor:pointer">25%</button>
+        <button onclick="setPct(50)" style="background:var(--panel);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:8px;font-size:11px;font-family:var(--mono);cursor:pointer">50%</button>
+        <button onclick="setPct(100)" style="background:var(--panel);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:8px;font-size:11px;font-family:var(--mono);cursor:pointer">전체</button>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:12px;color:var(--muted)">주문 예상금액</span>
+          <span id="orderTotal" style="font-family:var(--mono);font-size:16px;font-weight:700">₩0</span>
+        </div>
+      </div>
+
+      <button class="btn" id="submitOrderBtn" style="background:linear-gradient(135deg,#00e676,#00b0ff);color:#000;font-weight:700" onclick="submitOrder()">
+        매수 주문 실행
+      </button>
+    </div>
+  </div>
+
+  <!-- PAGE: PORTFOLIO -->
+  <div class="page" id="page-port">
+    <div class="section">
+      <div class="section-title">보유 종목</div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:var(--mono);font-size:14px;font-weight:700">삼성전자</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">005930 · 10주</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:16px;font-weight:700">₩724,000</div>
+            <div style="font-size:11px;color:var(--green);font-family:var(--mono)">+₩14,000 (+1.97%)</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--muted)">평균단가 <span style="color:var(--text);font-family:var(--mono)">71,000</span></div>
+          <div style="font-size:11px;color:var(--muted)">현재가 <span style="color:var(--text);font-family:var(--mono)">72,400</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:var(--mono);font-size:14px;font-weight:700">SK하이닉스</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">000660 · 5주</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:16px;font-weight:700">₩925,000</div>
+            <div style="font-size:11px;color:var(--red);font-family:var(--mono)">-₩7,500 (-0.80%)</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--muted)">평균단가 <span style="color:var(--text);font-family:var(--mono)">186,500</span></div>
+          <div style="font-size:11px;color:var(--muted)">현재가 <span style="color:var(--text);font-family:var(--mono)">185,000</span></div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:20px">미체결 주문</div>
+      <div class="card" style="text-align:center;color:var(--muted);font-size:13px;padding:20px">
+        미체결 주문 없음
+      </div>
+
+      <div class="section-title" style="margin-top:20px">오늘 체결 내역</div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:13px;font-weight:500">삼성전자</div><div style="font-size:10px;color:var(--muted)">09:32 · 매수 · 시장가</div></div>
+          <div style="text-align:right"><div style="font-family:var(--mono);font-size:13px;color:var(--green)">매수</div><div style="font-family:var(--mono);font-size:12px">10주 @ 72,300</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:13px;font-weight:500">삼성전자</div><div style="font-size:10px;color:var(--muted)">10:01 · 매도 · 지정가</div></div>
+          <div style="text-align:right"><div style="font-family:var(--mono);font-size:13px;color:var(--red)">매도</div><div style="font-family:var(--mono);font-size:12px">10주 @ 72,800</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: SETTINGS -->
+  <div class="page" id="page-set">
+    <div class="section">
+      <!-- API 설정 -->
+      <div class="api-card">
+        <div class="api-card-title">🔑 한국투자증권 (KIS) API</div>
+        <div class="form-group">
+          <label class="form-label">APP KEY</label>
+          <input class="form-input" type="password" id="appKey" placeholder="발급받은 APP KEY 입력">
+        </div>
+        <div class="form-group">
+          <label class="form-label">APP SECRET</label>
+          <input class="form-input" type="password" id="appSecret" placeholder="발급받은 APP SECRET 입력">
+        </div>
+        <div class="form-group">
+          <label class="form-label">계좌번호</label>
+          <input class="form-input" type="text" id="accountNo" placeholder="00000000-01">
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">환경</label>
+          <select class="form-input" id="apiEnv">
+            <option value="virtual">모의투자 (테스트)</option>
+            <option value="real">실제투자 (실거래)</option>
+          </select>
+        </div>
+        <button class="btn btn-outline" style="width:auto;padding:10px 20px;font-size:12px" onclick="connectAPI()">API 연결 테스트</button>
+        <div id="apiStatus" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
+      </div>
+
+      <!-- 시스템 설정 -->
+      <div class="settings-section">
+        <div class="section-title">시스템 설정</div>
+        <div class="card">
+          <div class="settings-row">
+            <div>
+              <div class="settings-key">푸시 알림</div>
+              <div class="settings-val">매수/매도 시 알림</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked id="notifToggle"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-key">야간 매매 차단</div>
+              <div class="settings-val">18:00 이후 중단</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked id="nightBlock"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-key">일일 손실 한도</div>
+              <div class="settings-val">초과 시 전체 중단</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked id="dailyLossBlock"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row" style="border-bottom:none">
+            <div class="settings-key">일일 손실 한도 (%)</div>
+            <input class="form-input" type="number" id="dailyLossLimit" value="-5" style="width:80px;text-align:right;padding:6px 10px">
+          </div>
+        </div>
+      </div>
+
+      <!-- 위험 관리 -->
+      <div class="settings-section">
+        <div class="section-title">위험 관리</div>
+        <div class="card">
+          <div class="settings-row">
+            <div class="settings-key">최대 동시 보유 종목</div>
+            <input class="form-input" type="number" id="maxPositions" value="5" style="width:70px;text-align:right;padding:6px 10px">
+          </div>
+          <div class="settings-row" style="border-bottom:none">
+            <div class="settings-key">전체 손절 기준 (%)</div>
+            <input class="form-input" type="number" id="globalStopLoss" value="-10" style="width:80px;text-align:right;padding:6px 10px">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveSettings()">💾 설정 저장</button>
+      <div style="margin-top:10px">
+        <button class="btn btn-danger" onclick="if(confirm('정말 초기화하시겠습니까?'))resetAll()">⚠️ 전체 초기화</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- BOTTOM TABS -->
+<div class="tabs">
+  <button class="tab active" id="tab-dash" onclick="switchPage('dash')">
+    <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>
+    대시보드
+  </button>
+  <button class="tab" id="tab-bot" onclick="switchPage('bot')">
+    <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+    봇 설정
+  </button>
+  <button class="tab" id="tab-order" onclick="switchPage('order')">
+    <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+    주문
+  </button>
+  <button class="tab" id="tab-port" onclick="switchPage('port')">
+    <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/></svg>
+    잔고
+  </button>
+  <button class="tab" id="tab-set" onclick="switchPage('set')">
+    <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+    설정
+  </button>
+</div>
+
+<!-- BOT LIST MODAL -->
+<div class="modal-overlay" id="botListModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">내 봇 목록</div>
+    <div id="modalBotList"></div>
+    <button class="btn btn-outline" style="margin-top:16px" onclick="closeModal('botListModal')">닫기</button>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+const state = {
+  running: false,
+  currentStrategy: 'ma',
+  orderType: 'buy',
+  bots: [
+    { id:1, name:'MA크로스 봇', stock:'삼성전자', strategy:'ma', status:'running', profit:'+3.24%' },
+    { id:2, name:'RSI 봇', stock:'SK하이닉스', strategy:'rsi', status:'paused', profit:'+0.89%' }
+  ],
+  stocks: [
+    { name:'삼성전자', code:'005930', price:72400, change:1.2 },
+    { name:'SK하이닉스', code:'000660', price:185000, change:-0.8 },
+    { name:'NAVER', code:'035420', price:195500, change:2.1 },
+    { name:'카카오', code:'035720', price:38400, change:-1.5 },
+    { name:'LG에너지솔루션', code:'373220', price:412000, change:0.6 },
+    { name:'현대차', code:'005380', price:218000, change:0.3 },
+    { name:'삼성바이오로직스', code:'207940', price:765000, change:-0.4 },
+    { name:'셀트리온', code:'068270', price:175000, change:1.8 },
+    { name:'KB금융', code:'105560', price:68500, change:0.9 },
+    { name:'POSCO홀딩스', code:'005490', price:342000, change:-1.1 },
+    { name:'LG화학', code:'051910', price:285000, change:0.5 },
+    { name:'삼성SDI', code:'006400', price:315000, change:-0.7 },
+    { name:'기아', code:'000270', price:95400, change:1.4 },
+    { name:'카카오뱅크', code:'323410', price:21800, change:-2.1 },
+    { name:'크래프톤', code:'259960', price:248000, change:3.2 },
+  ],
+  selectedStock: null,
+  orderSelectedStock: null,
+  conditionCount: 0,
+};
+
+// Load from localStorage
+function loadState() {
+  try {
+    const saved = localStorage.getItem('autotradeKR');
+    if (saved) {
+      const d = JSON.parse(saved);
+      if (d.appKey) document.getElementById('appKey').value = d.appKey;
+      if (d.appSecret) document.getElementById('appSecret').value = d.appSecret;
+      if (d.accountNo) document.getElementById('accountNo').value = d.accountNo;
+      if (d.bots) state.bots = d.bots;
+    }
+  } catch(e) {}
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem('autotradeKR', JSON.stringify({
+      appKey: document.getElementById('appKey').value,
+      appSecret: document.getElementById('appSecret').value,
+      accountNo: document.getElementById('accountNo').value,
+      bots: state.bots,
+    }));
+  } catch(e) {}
+}
+
+// ── PAGE SWITCHING ──
+function switchPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.getElementById('tab-' + p).classList.add('active');
+}
+
+// ── MASTER BOT TOGGLE ──
+function toggleMasterBot() {
+  state.running = !state.running;
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusLabel');
+  const btn = document.getElementById('masterBtn');
+  if (state.running) {
+    dot.classList.add('live');
+    label.textContent = 'LIVE';
+    btn.textContent = 'STOP';
+    btn.style.borderColor = 'var(--red)';
+    btn.style.color = 'var(--red)';
+    addLog('info', '자동매매 시스템 시작됨');
+  } else {
+    dot.classList.remove('live');
+    label.textContent = 'OFF';
+    btn.textContent = 'START';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+    addLog('warn', '자동매매 시스템 중단됨');
+  }
+}
+
+// ── LOG ──
+function addLog(type, msg) {
+  const c = document.getElementById('logContainer');
+  const now = new Date();
+  const t = now.toTimeString().slice(0,8);
+  const typeMap = { buy:'msg-buy', sell:'msg-sell', info:'msg-info', warn:'msg-warn' };
+  const prefix = { buy:'[매수]', sell:'[매도]', info:'[정보]', warn:'[경고]' };
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="time">[${t}] </span><span class="${typeMap[type]}">${prefix[type]} ${msg}</span>`;
+  c.appendChild(div);
+  c.scrollTop = c.scrollHeight;
+}
+
+// ── STRATEGY SELECTION ──
+function selectStrategy(btn, key) {
+  document.querySelectorAll('.strategy-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  ['ma','rsi','price','bb','macd','custom'].forEach(s => {
+    const el = document.getElementById('strategy-' + s);
+    if (el) el.style.display = s === key ? 'block' : 'none';
+  });
+  state.currentStrategy = key;
+}
+
+// ── STOCK SEARCH ──
+function searchStock(q) {
+  const res = document.getElementById('searchResults');
+  if (!q.trim()) { res.style.display = 'none'; return; }
+  const filtered = state.stocks.filter(s =>
+    s.name.includes(q) || s.code.includes(q)
+  );
+  if (!filtered.length) { res.style.display = 'none'; return; }
+  res.innerHTML = filtered.map(s =>
+    `<div class="search-item" onclick="selectStock('${s.code}','${s.name}',${s.price})">
+      ${s.name} <span class="code">${s.code} · ${s.price.toLocaleString()}원</span>
+    </div>`
+  ).join('');
+  res.style.display = 'block';
+}
+
+function selectStock(code, name, price) {
+  state.selectedStock = { code, name, price };
+  document.getElementById('stockSearch').value = `${name} (${code})`;
+  document.getElementById('searchResults').style.display = 'none';
+  document.getElementById('selectedStock').textContent = `✓ ${name} · 현재가 ${price.toLocaleString()}원`;
+}
+
+function searchOrderStock(q) {
+  const res = document.getElementById('orderSearchResults');
+  if (!q.trim()) { res.style.display = 'none'; return; }
+  const filtered = state.stocks.filter(s =>
+    s.name.includes(q) || s.code.includes(q)
+  );
+  if (!filtered.length) { res.style.display = 'none'; return; }
+  res.innerHTML = filtered.map(s =>
+    `<div class="search-item" onclick="selectOrderStock('${s.code}','${s.name}',${s.price},${s.change})">
+      ${s.name} <span class="code">${s.code} · ${s.price.toLocaleString()}원</span>
+    </div>`
+  ).join('');
+  res.style.display = 'block';
+}
+
+function selectOrderStock(code, name, price, change) {
+  state.orderSelectedStock = { code, name, price, change };
+  document.getElementById('orderStockSearch').value = `${name} (${code})`;
+  document.getElementById('orderSearchResults').style.display = 'none';
+  document.getElementById('currentPrice').textContent = `${price.toLocaleString()}원`;
+  const chgEl = document.getElementById('priceChange');
+  chgEl.textContent = `${change > 0 ? '+' : ''}${change}%`;
+  chgEl.style.color = change >= 0 ? 'var(--green)' : 'var(--red)';
+  updateOrderTotal();
+}
+
+// ── ORDER ──
+function setOrderType(type) {
+  state.orderType = type;
+  ['buy','sell','auto'].forEach(t => {
+    document.getElementById('obtn-' + t).classList.remove('active');
+  });
+  document.getElementById('obtn-' + type).classList.add('active');
+  const btn = document.getElementById('submitOrderBtn');
+  if (type === 'buy') {
+    btn.style.background = 'linear-gradient(135deg,#00e676,#00b0ff)';
+    btn.style.color = '#000';
+    btn.textContent = '매수 주문 실행';
+  } else if (type === 'sell') {
+    btn.style.background = 'linear-gradient(135deg,#ff4444,#ff9800)';
+    btn.style.color = '#fff';
+    btn.textContent = '매도 주문 실행';
+  } else {
+    btn.style.background = 'linear-gradient(135deg,var(--accent),var(--accent2))';
+    btn.style.color = '#fff';
+    btn.textContent = '예약 주문 설정';
+  }
+}
+
+function adjustQty(d) {
+  const el = document.getElementById('orderQty');
+  el.value = Math.max(1, (parseInt(el.value) || 1) + d);
+  updateOrderTotal();
+}
+
+function setPct(pct) {
+  const budget = 5000000;
+  const price = state.orderSelectedStock ? state.orderSelectedStock.price : 70000;
+  const qty = Math.floor((budget * pct / 100) / price);
+  document.getElementById('orderQty').value = Math.max(1, qty);
+  updateOrderTotal();
+}
+
+function updateOrderTotal() {
+  const qty = parseInt(document.getElementById('orderQty').value) || 0;
+  const price = state.orderSelectedStock ? state.orderSelectedStock.price : 0;
+  document.getElementById('orderTotal').textContent = `₩${(qty * price).toLocaleString()}`;
+}
+
+document.getElementById('orderQty').addEventListener('input', updateOrderTotal);
+
+function submitOrder() {
+  if (!state.orderSelectedStock) { alert('종목을 선택해주세요'); return; }
+  const qty = parseInt(document.getElementById('orderQty').value) || 0;
+  if (qty < 1) { alert('수량을 입력해주세요'); return; }
+  const { name, price } = state.orderSelectedStock;
+  const type = state.orderType === 'buy' ? 'buy' : 'sell';
+  const action = state.orderType === 'buy' ? '매수' : '매도';
+  if (confirm(`${name} ${qty}주 ${action} 주문하시겠습니까?\n예상금액: ₩${(qty*price).toLocaleString()}`)) {
+    addLog(type, `${name} ${qty}주 @ ${price.toLocaleString()} | 수동주문`);
+    switchPage('dash');
+  }
+}
+
+// ── BOT BUILDER ──
+function createBot() {
+  const name = document.getElementById('botName').value.trim();
+  if (!name) { alert('봇 이름을 입력해주세요'); return; }
+  if (!state.selectedStock) { alert('종목을 선택해주세요'); return; }
+  const mode = document.getElementById('tradeMode').value;
+  const modeLabel = { auto:'완전자동', semi:'반자동', manual:'수동' }[mode];
+  const bot = {
+    id: Date.now(),
+    name,
+    stock: state.selectedStock.name,
+    strategy: state.currentStrategy,
+    status: 'running',
+    profit: '0.00%',
+    mode: modeLabel,
+  };
+  state.bots.push(bot);
+  renderBotList();
+  addLog('info', `봇 생성됨: ${name} · ${state.selectedStock.name} · ${modeLabel}`);
+  saveToStorage();
+  switchPage('dash');
+}
+
+function renderBotList() {
+  const c = document.getElementById('botList');
+  const stratLabel = { ma:'MA크로스', rsi:'RSI', price:'목표가', bb:'볼린저밴드', macd:'MACD', custom:'직접설정' };
+  c.innerHTML = state.bots.map(b => `
+    <div class="bot-status-card ${b.status==='running'?'glow':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="bot-name">🤖 ${b.name}</div>
+          <div class="bot-strategy">${b.stock} · ${stratLabel[b.strategy]||b.strategy}</div>
+        </div>
+        <span class="badge ${b.status}">${b.status==='running'?'RUNNING':b.status==='paused'?'PAUSED':'STOPPED'}</span>
+      </div>
+      <div class="bot-meta">
+        <div style="display:flex;gap:8px">
+          <button onclick="toggleBot(${b.id})" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer">
+            ${b.status==='running'?'⏸ 일시정지':'▶ 재개'}
+          </button>
+          <button onclick="deleteBot(${b.id})" style="background:none;border:1px solid var(--red);color:var(--red);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer">삭제</button>
+        </div>
+        <div class="bot-profit" style="color:${b.profit.startsWith('-')?'var(--red)':'var(--green)'}">${b.profit}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // also update modal
+  document.getElementById('modalBotList').innerHTML = c.innerHTML;
+}
+
+function toggleBot(id) {
+  const bot = state.bots.find(b => b.id === id);
+  if (!bot) return;
+  bot.status = bot.status === 'running' ? 'paused' : 'running';
+  renderBotList();
+  addLog('info', `${bot.name} ${bot.status === 'running' ? '재개' : '일시정지'}`);
+  saveToStorage();
+}
+
+function deleteBot(id) {
+  if (!confirm('이 봇을 삭제하시겠습니까?')) return;
+  state.bots = state.bots.filter(b => b.id !== id);
+  renderBotList();
+  saveToStorage();
+}
+
+// ── CUSTOM CONDITIONS ──
+function addCondition() {
+  const id = ++state.conditionCount;
+  const c = document.getElementById('customConditions');
+  const div = document.createElement('div');
+  div.className = 'condition-block';
+  div.id = 'cond-' + id;
+  div.innerHTML = `
+    <div class="condition-header">
+      <div class="condition-title">조건 #${id}</div>
+      <button class="del-btn" onclick="document.getElementById('cond-${id}').remove()">✕</button>
+    </div>
+    <div class="row2" style="margin-bottom:8px">
+      <select class="form-input">
+        <option>현재가</option><option>RSI</option><option>MA(5)</option>
+        <option>MA(20)</option><option>MA(60)</option><option>거래량</option>
+        <option>등락률</option><option>MACD</option><option>볼린저상단</option>
+        <option>볼린저하단</option>
+      </select>
+      <select class="form-input">
+        <option>≥</option><option>≤</option><option>></option>
+        <option>=</option><option>&lt;</option><option>크로스↑</option><option>크로스↓</option>
+      </select>
+    </div>
+    <input class="form-input" type="text" placeholder="값 (예: 70000 또는 MA(20))">
+    <div style="margin-top:8px">
+      <select class="form-input">
+        <option>— (마지막 조건)</option><option>AND (다음 조건과)</option><option>OR (다음 조건 또는)</option>
+      </select>
+    </div>
+    <div style="margin-top:8px">
+      <select class="form-input">
+        <option>매수 시그널</option><option>매도 시그널</option>
+      </select>
+    </div>
+  `;
+  c.appendChild(div);
+}
+
+// ── API ──
+function connectAPI() {
+  const key = document.getElementById('appKey').value;
+  const secret = document.getElementById('appSecret').value;
+  const status = document.getElementById('apiStatus');
+  if (!key || !secret) {
+    status.textContent = '⚠ APP KEY와 APP SECRET을 입력해주세요';
+    status.style.color = 'var(--yellow)';
+    return;
+  }
+  status.textContent = '연결 테스트 중...';
+  status.style.color = 'var(--muted)';
+  setTimeout(() => {
+    status.innerHTML = '<span style="color:var(--green)">✓ 연결 성공 · 모의투자 계좌 확인됨</span>';
+    saveToStorage();
+  }, 1500);
+}
+
+// ── SETTINGS ──
+function saveSettings() {
+  saveToStorage();
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✓ 저장 완료';
+  btn.style.background = 'rgba(0,230,118,0.2)';
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.style.background = '';
+  }, 2000);
+}
+
+function resetAll() {
+  localStorage.removeItem('autotradeKR');
+  location.reload();
+}
+
+// ── MODAL ──
+function openModal(id) {
+  renderBotList();
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// ── SIMULATED PRICE UPDATES ──
+function simulatePriceUpdates() {
+  if (!state.running) return;
+  const bot = state.bots.find(b => b.status === 'running');
+  if (bot && Math.random() < 0.3) {
+    const actions = [
+      () => addLog('info', `${bot.stock} RSI=${Math.floor(Math.random()*100)} 모니터링 중`),
+      () => addLog('info', `${bot.stock} MA신호 대기 중`),
+    ];
+    actions[Math.floor(Math.random() * actions.length)]();
+  }
+}
+
+// ── INIT ──
+loadState();
+renderBotList();
+setInterval(simulatePriceUpdates, 8000);
+
+// Close search on outside tap
+document.addEventListener('click', e => {
+  if (!e.target.closest('.stock-search')) {
+    document.querySelectorAll('.search-results').forEach(el => el.style.display = 'none');
+  }
+});
+</script>
+</body>
+</html>

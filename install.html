@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0f1e">
+<title>AutoTradeKR 설치</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  :root {
+    --bg: #060b18;
+    --card: #0f1829;
+    --border: #1a2d4a;
+    --accent: #00d4ff;
+    --accent2: #6c2fff;
+    --green: #00e676;
+    --text: #e8f0fe;
+    --muted: #5a7490;
+    --sans: 'Noto Sans KR', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* animated background */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 20s linear infinite;
+  }
+  @keyframes gridMove { from{background-position:0 0} to{background-position:40px 40px} }
+
+  .glow-orb {
+    position: fixed; border-radius: 50%; filter: blur(80px); z-index: 0; pointer-events: none;
+  }
+  .orb1 { width:300px; height:300px; background:rgba(0,212,255,0.08); top:-100px; right:-100px; }
+  .orb2 { width:250px; height:250px; background:rgba(108,47,255,0.08); bottom:100px; left:-80px; }
+
+  .wrap {
+    position: relative; z-index: 1;
+    max-width: 420px; margin: 0 auto;
+    padding: 40px 20px 60px;
+  }
+
+  /* HERO */
+  .hero { text-align: center; margin-bottom: 40px; }
+
+  .app-icon {
+    width: 96px; height: 96px; border-radius: 24px; margin: 0 auto 20px;
+    background: linear-gradient(135deg, #0d1f3c 0%, #1a0a3e 100%);
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px;
+    box-shadow: 0 0 40px rgba(0,212,255,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+    animation: iconPulse 3s ease-in-out infinite;
+  }
+  @keyframes iconPulse {
+    0%,100% { box-shadow: 0 0 40px rgba(0,212,255,0.2), inset 0 1px 0 rgba(255,255,255,0.05); }
+    50% { box-shadow: 0 0 60px rgba(0,212,255,0.4), inset 0 1px 0 rgba(255,255,255,0.05); }
+  }
+
+  .app-name {
+    font-size: 28px; font-weight: 900; letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .app-sub { font-size: 13px; color: var(--muted); margin-top: 6px; font-weight: 300; }
+
+  /* STATUS BADGE */
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.3);
+    border-radius: 20px; padding: 6px 14px; margin-top: 16px;
+    font-size: 12px; color: var(--green); font-weight: 500;
+  }
+  .dot-live {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 8px var(--green);
+    animation: blink 1.4s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* STEP CARDS */
+  .steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+
+  .step-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 16px;
+    display: flex; align-items: flex-start; gap: 14px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+  .step-card:active { transform: scale(0.98); }
+  .step-card.active-step {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(0,212,255,0.06), var(--card));
+  }
+  .step-card.active-step::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .step-num {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 900;
+    background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(108,47,255,0.2));
+    border: 1px solid rgba(0,212,255,0.3);
+    color: var(--accent);
+  }
+  .step-card.done .step-num {
+    background: rgba(0,230,118,0.15);
+    border-color: rgba(0,230,118,0.4);
+    color: var(--green);
+  }
+
+  .step-body { flex: 1; }
+  .step-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .step-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .step-desc b { color: var(--accent); font-weight: 500; }
+
+  /* VISUAL HINT */
+  .hint-box {
+    background: rgba(0,0,0,0.3);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 10px;
+    font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hint-box .icon { font-size: 22px; flex-shrink: 0; }
+
+  /* CHROME MENU ILLUSTRATION */
+  .chrome-menu {
+    background: #1e2736; border-radius: 10px; padding: 10px;
+    margin-top: 10px; font-size: 11px;
+  }
+  .menu-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 6px; border-radius: 6px; color: var(--text);
+  }
+  .menu-item.highlight {
+    background: rgba(0,212,255,0.12);
+    border: 1px solid rgba(0,212,255,0.25);
+    color: var(--accent); font-weight: 600;
+  }
+  .menu-item span { font-size: 16px; }
+
+  /* BIG BUTTON */
+  .open-btn {
+    display: block; width: 100%;
+    padding: 18px;
+    border-radius: 16px; border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; font-size: 16px; font-weight: 700;
+    font-family: var(--sans); cursor: pointer;
+    box-shadow: 0 8px 32px rgba(0,212,255,0.3);
+    transition: all 0.2s;
+    text-decoration: none; text-align: center;
+    margin-bottom: 12px;
+  }
+  .open-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+  .copy-btn {
+    display: block; width: 100%;
+    padding: 14px;
+    border-radius: 16px; border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text); font-size: 14px; font-weight: 500;
+    font-family: var(--sans); cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 24px;
+  }
+  .copy-btn:active { border-color: var(--accent); color: var(--accent); }
+
+  /* TIP */
+  .tip-card {
+    background: rgba(108,47,255,0.08);
+    border: 1px solid rgba(108,47,255,0.25);
+    border-radius: 14px; padding: 16px;
+    margin-bottom: 24px;
+  }
+  .tip-title { font-size: 12px; color: var(--accent2); font-weight: 700; margin-bottom: 8px; letter-spacing: 1px; }
+  .tip-list { list-style: none; }
+  .tip-list li { font-size: 12px; color: var(--muted); padding: 4px 0; }
+  .tip-list li::before { content: '→ '; color: var(--accent2); }
+
+  /* PROGRESS */
+  .progress-wrap { margin-bottom: 28px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* CHECK ANIMATION */
+  @keyframes checkIn { from{transform:scale(0) rotate(-20deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+  .check { display:none; color:var(--green); font-size:18px; animation:checkIn 0.3s ease; }
+  .done .check { display:block; }
+  .done .step-num-inner { display:none; }
+
+  /* FOOTER */
+  .footer { text-align:center; font-size:11px; color:var(--muted); }
+
+  /* FADE IN */
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .wrap > * { animation: fadeUp 0.4s ease both; }
+  .wrap > *:nth-child(1) { animation-delay:0.05s }
+  .wrap > *:nth-child(2) { animation-delay:0.1s }
+  .wrap > *:nth-child(3) { animation-delay:0.15s }
+  .wrap > *:nth-child(4) { animation-delay:0.2s }
+  .wrap > *:nth-child(5) { animation-delay:0.25s }
+  .wrap > *:nth-child(6) { animation-delay:0.3s }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="glow-orb orb1"></div>
+<div class="glow-orb orb2"></div>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="app-icon">📈</div>
+    <div class="app-name">AutoTradeKR</div>
+    <div class="app-sub">한국주식 완전자동매매 · KIS API 연동</div>
+    <div class="status-badge">
+      <div class="dot-live"></div>
+      갤럭시에서 앱처럼 실행 가능
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>설치 진행도</span>
+      <span id="progressText">0 / 3 완료</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <!-- STEPS -->
+  <div class="steps">
+
+    <!-- STEP 1 -->
+    <div class="step-card active-step" id="step1">
+      <div class="step-num">
+        <span class="step-num-inner">1</span>
+        <span class="check">✓</span>
+      </div>
+      <div class="step-body">
+        <div class="step-title">아래 앱 열기 버튼 누르기</div>
+        <div class="step-desc">
+          아래 <b>앱 열기</b> 버튼을 누르면 자동매매 앱이 Chrome에서 열립니다.<br>
+          (이 페이지를 Chrome에서 보고 계신 게 맞죠?)
+        </div>
+        <div class="hint-box">
+          <span class="icon">💡</span>
+          <span>삼성 인터넷 사용 중이시면 Chrome으로 열어주세요</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-card" id="step2">
+      <div class="step-num">
+        <span class="step-num-inner">2</span>
+        <span class="check">✓</span>
+      </div>
+      <div class="step-body">
+        <div class="step-title">Chrome 메뉴 → 홈화면에 추가</div>
+        <div class="step-desc">
+          앱이 열리면 Chrome 우측 상단 <b>⋮ 점 세 개</b> 메뉴를 탭하세요.
+        </div>
+        <div class="chrome-menu">
+          <div class="menu-item"><span>🔖</span> 북마크 추가</div>
+          <div class="menu-item"><span>📥</span> 다운로드</div>
+          <div class="menu-item highlight"><span>📱</span> 홈 화면에 추가 ← 이거!</div>
+          <div class="menu-item"><span>🖨️</span> 인쇄</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-card" id="step3">
+      <div class="step-num">
+        <span class="step-num-inner">3</span>
+        <span class="check">✓</span>
+      </div>
+      <div class="step-body">
+        <div class="step-title">추가 → 완료! 🎉</div>
+        <div class="step-desc">
+          팝업에서 <b>"추가"</b> 버튼 누르면 끝.<br>
+          이제 홈화면에 <b>AutoTradeKR 아이콘</b>이 생깁니다.<br>
+          카카오뱅크, 토스처럼 바로 실행돼요!
+        </div>
+        <div class="hint-box">
+          <span class="icon">🏠</span>
+          <span>홈화면 아이콘 탭 → 앱처럼 전체화면으로 실행!</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CTA -->
+  <a class="open-btn" href="stock-trader.html" id="openBtn" onclick="markStep(1)">
+    📱 자동매매 앱 열기
+  </a>
+
+  <button class="copy-btn" onclick="copyLink()">
+    🔗 앱 링크 복사하기
+  </button>
+
+  <!-- TIP -->
+  <div class="tip-card">
+    <div class="tip-title">💬 설치 후 이용 팁</div>
+    <ul class="tip-list">
+      <li>처음엔 반드시 <b>모의투자</b> 모드로 테스트하세요</li>
+      <li>KIS API 키는 설정 탭에서 입력하면 저장됩니다</li>
+      <li>봇 실행 중엔 폰 화면 꺼도 알림으로 체결 확인 가능</li>
+      <li>앱 삭제 → 홈화면 아이콘 길게 눌러 삭제</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    AutoTradeKR · 한국투자증권 KIS API 연동<br>
+    <span style="color:rgba(90,116,144,0.6);font-size:10px;margin-top:4px;display:block">
+      투자는 본인 책임입니다. 자동매매 전 충분한 테스트를 권장합니다.
+    </span>
+  </div>
+
+</div>
+
+<script>
+  let stepsCompleted = 0;
+
+  function markStep(n) {
+    const card = document.getElementById('step' + n);
+    if (!card.classList.contains('done')) {
+      card.classList.add('done');
+      card.classList.remove('active-step');
+      stepsCompleted++;
+      updateProgress();
+
+      // activate next step
+      const next = document.getElementById('step' + (n+1));
+      if (next) {
+        setTimeout(() => next.classList.add('active-step'), 300);
+      }
+    }
+  }
+
+  function updateProgress() {
+    const pct = (stepsCompleted / 3) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent = stepsCompleted + ' / 3 완료';
+  }
+
+  // Step 2 & 3 tap to check
+  document.getElementById('step2').addEventListener('click', function() {
+    if (stepsCompleted >= 1) markStep(2);
+    else alert('먼저 앱을 열어주세요!');
+  });
+  document.getElementById('step3').addEventListener('click', function() {
+    if (stepsCompleted >= 2) markStep(3);
+    else if (stepsCompleted < 1) alert('먼저 앱을 열어주세요!');
+    else alert('Chrome ⋮ 메뉴 → 홈 화면에 추가를 먼저 해주세요!');
+  });
+
+  function copyLink() {
+    const url = window.location.href.replace('install.html','stock-trader.html');
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✓ 복사 완료!';
+        btn.style.color = 'var(--green)';
+        btn.style.borderColor = 'var(--green)';
+        setTimeout(() => {
+          btn.textContent = '🔗 앱 링크 복사하기';
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }, 2000);
+      });
+    } else {
+      alert('링크: ' + url);
+    }
+  }
+</script>
+</body>
+</html>
