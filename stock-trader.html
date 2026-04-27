@@ -505,11 +505,31 @@ input:checked+.tog-sl:before{transform:translateX(19px)}
         <div style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:11px">🔑 KIS API</div>
         <div class="fg"><label class="fl">APP KEY</label><input class="fi" type="password" id="appKey" placeholder="발급받은 APP KEY"></div>
         <div class="fg"><label class="fl">APP SECRET</label><input class="fi" type="password" id="appSecret" placeholder="발급받은 APP SECRET"></div>
-        <div class="fg"><label class="fl">계좌번호 (앞 8자리)</label><input class="fi" type="text" id="accNo" placeholder="12345678" maxlength="8"></div>
+        <div class="fg">
+          <label class="fl">계좌번호</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="fi" type="text" id="accNo" placeholder="44450876" maxlength="8" style="flex:1" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <span style="color:var(--muted);font-family:var(--mono);font-size:13px;flex-shrink:0">-</span>
+            <input class="fi" type="text" id="accSuffix" placeholder="01" maxlength="2" style="width:60px;text-align:center" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:5px;font-family:var(--mono)">예) 44450876 - 01</div>
+        </div>
         <div class="fg" style="margin-bottom:11px"><label class="fl">환경</label>
           <select class="fi" id="apiEnv"><option value="vps">모의투자</option><option value="prod">실전투자</option></select></div>
         <button class="btn btn-outline" style="width:auto;padding:8px 16px;font-size:12px;margin-bottom:7px" onclick="connectAPI()">연결 테스트</button>
-        <div id="apiMsg" style="font-size:12px;color:var(--muted)"></div>
+        <div id="apiMsg" style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.7"></div>
+        <div id="corsGuide" style="display:none;margin-top:12px;background:rgba(255,214,0,0.07);border:1px solid rgba(255,214,0,0.25);border-radius:10px;padding:12px;font-size:12px;line-height:1.8">
+          <div style="color:var(--yellow);font-family:var(--mono);font-weight:700;margin-bottom:6px">⚠ 연결 오류 해결법</div>
+          <div style="color:var(--muted)">
+            브라우저 보안정책(CORS)으로 KIS API가 막힐 수 있어요.<br><br>
+            <b style="color:var(--text)">① APP KEY / SECRET 재확인</b><br>
+            KIS Developers 사이트에서 복사한 값이 맞는지 확인<br><br>
+            <b style="color:var(--text)">② 모의투자로 먼저 시도</b><br>
+            실전 전 모의투자 환경에서 먼저 연결 테스트<br><br>
+            <b style="color:var(--text)">③ 계좌번호 뒤 2자리 확인</b><br>
+            보통 01이지만 다를 수 있음 (한투 앱 계좌정보 확인)
+          </div>
+        </div>
       </div>
       <div class="card" style="margin-bottom:13px">
         <div style="font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:2px">시스템</div>
@@ -526,6 +546,7 @@ input:checked+.tog-sl:before{transform:translateX(19px)}
         </div>
       </div>
       <button class="btn btn-primary" onclick="saveSettings()" style="margin-bottom:9px">💾 설정 저장</button>
+      <button class="btn btn-outline" onclick="downloadApp()" style="margin-bottom:9px">📥 앱 파일 다운로드</button>
       <button class="btn btn-danger" onclick="if(confirm('초기화?'))resetAll()">⚠️ 전체 초기화</button>
     </div>
   </div>
@@ -672,7 +693,7 @@ async function fetchDaily(code,count=60){
 async function fetchBalance(){
   const trId=S.apiEnv==='prod'?'TTTC8434R':'VTTC8434R';
   const d=await kisGet('/uapi/domestic-stock/v1/trading/inquire-balance',
-    {tr_id:trId,CANO:S.accNo,ACNT_PRDT_CD:'01',AFHR_FLPR_YN:'N',OFL_YN:'',INQR_DVSN:'02',UNPR_DVSN:'01',FUND_STTL_ICLD_YN:'N',FNCG_AMT_AUTO_RDPT_YN:'N',PRCS_DVSN:'00',CTX_AREA_FK100:'',CTX_AREA_NK100:''});
+    {tr_id:trId,CANO:S.accNo,ACNT_PRDT_CD:S.accSuffix||'01',AFHR_FLPR_YN:'N',OFL_YN:'',INQR_DVSN:'02',UNPR_DVSN:'01',FUND_STTL_ICLD_YN:'N',FNCG_AMT_AUTO_RDPT_YN:'N',PRCS_DVSN:'00',CTX_AREA_FK100:'',CTX_AREA_NK100:''});
   if(d&&d.output1){
     S.positions=d.output1.filter(p=>parseInt(p.hldg_qty)>0).map(p=>({
       name:p.prdt_name,code:p.pdno,qty:parseInt(p.hldg_qty),
@@ -695,7 +716,7 @@ async function fetchBalance(){
 async function sendOrder(code,side,qty,ordType,price=0){
   const trId=S.apiEnv==='prod'?(side==='buy'?'TTTC0802U':'TTTC0801U'):(side==='buy'?'VTTC0802U':'VTTC0801U');
   const d=await kisPost('/uapi/domestic-stock/v1/trading/order-cash',trId,
-    {CANO:S.accNo,ACNT_PRDT_CD:'01',PDNO:code,ORD_DVSN:ordType,ORD_QTY:String(qty),ORD_UNPR:ordType==='00'?String(price):'0'});
+    {CANO:S.accNo,ACNT_PRDT_CD:S.accSuffix||'01',PDNO:code,ORD_DVSN:ordType,ORD_QTY:String(qty),ORD_UNPR:ordType==='00'?String(price):'0'});
   if(d&&d.rt_cd==='0'){
     log(side==='buy'?'buy':'sell',`${side==='buy'?'매수':'매도'} | ${code} ${qty}주`);
     S.history.unshift({name:code,side,qty,price,time:new Date().toLocaleTimeString()});
@@ -1049,21 +1070,35 @@ async function connectAPI(){
   S.apiKey=document.getElementById('appKey').value.trim();
   S.apiSecret=document.getElementById('appSecret').value.trim();
   S.accNo=document.getElementById('accNo').value.trim();
+  S.accSuffix=document.getElementById('accSuffix').value.trim()||'01';
   S.apiEnv=document.getElementById('apiEnv').value;
   const msg=document.getElementById('apiMsg');
   if(!S.apiKey||!S.apiSecret||!S.accNo){msg.textContent='⚠ 모두 입력해주세요';msg.style.color='var(--yellow)';return;}
+  if(S.accNo.length!==8){msg.textContent='⚠ 계좌번호 앞 8자리를 입력해주세요';msg.style.color='var(--yellow)';return;}
   msg.textContent='연결 중...';msg.style.color='var(--muted)';
-  const tok=await getToken();
+  let tok=null;
+  try{ tok=await getToken(); }
+  catch(e){
+    S.connected=false;
+    document.getElementById('connBadge').textContent='오류';document.getElementById('connBadge').className='conn-badge err';
+    msg.innerHTML='✗ <b>CORS 차단</b> — 브라우저 보안정책으로 직접 연결이 막혔어요.<br><span style="font-size:11px">아래 해결법을 확인해주세요.</span>';
+    msg.style.color='var(--yellow)';
+    document.getElementById('corsGuide').style.display='block';
+    return;
+  }
   if(tok){
     S.connected=true;
     document.getElementById('connBadge').textContent='연결됨';document.getElementById('connBadge').className='conn-badge live';
     document.getElementById('apiWarn').style.display='none';
-    msg.textContent='✓ 연결 성공';msg.style.color='var(--green)';
-    log('info','KIS API 연결 · '+(S.apiEnv==='prod'?'실전':'모의'));
+    document.getElementById('corsGuide').style.display='none';
+    msg.textContent='✓ 연결 성공 · '+S.accNo+'-'+S.accSuffix;msg.style.color='var(--green)';
+    log('info','KIS API 연결 성공 · '+(S.apiEnv==='prod'?'실전투자':'모의투자')+' · '+S.accNo+'-'+S.accSuffix);
     fetchBalance();startPriceFeed();save();
   }else{
     S.connected=false;document.getElementById('connBadge').textContent='오류';document.getElementById('connBadge').className='conn-badge err';
-    msg.textContent='✗ 연결 실패 · KEY 확인';msg.style.color='var(--red)';
+    msg.innerHTML='✗ 토큰 발급 실패<br><span style="font-size:11px;color:var(--muted)">① APP KEY/SECRET 재확인<br>② KIS Developers 서비스 신청 완료 확인<br>③ 모의투자로 먼저 시도해보세요</span>';
+    msg.style.color='var(--red)';
+    document.getElementById('corsGuide').style.display='block';
   }
 }
 
@@ -1155,13 +1190,28 @@ function saveSettings(){
   const btn=event.target,orig=btn.textContent;btn.textContent='✓ 저장!';btn.style.background='var(--green)';btn.style.color='#000';
   setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.color='';},2000);
 }
+function downloadApp(){
+  // 현재 HTML 전체를 파일로 저장
+  const html = document.documentElement.outerHTML;
+  const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'AutoTradeKR_' + new Date().toISOString().slice(0,10) + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  log('info', '앱 파일 다운로드 완료');
+}
 function resetAll(){localStorage.removeItem('atKR2');location.reload();}
-function save(){try{localStorage.setItem('atKR2',JSON.stringify({apiKey:S.apiKey,apiSecret:S.apiSecret,accNo:S.accNo,apiEnv:S.apiEnv,bots:S.bots,history:S.history}));}catch(e){}}
+function save(){try{localStorage.setItem('atKR2',JSON.stringify({apiKey:S.apiKey,apiSecret:S.apiSecret,accNo:S.accNo,accSuffix:S.accSuffix||'01',apiEnv:S.apiEnv,bots:S.bots,history:S.history}));}catch(e){}}
 function load(){
   try{const d=JSON.parse(localStorage.getItem('atKR2')||'{}');
     if(d.apiKey){S.apiKey=d.apiKey;document.getElementById('appKey').value=d.apiKey;}
     if(d.apiSecret){S.apiSecret=d.apiSecret;document.getElementById('appSecret').value=d.apiSecret;}
     if(d.accNo){S.accNo=d.accNo;document.getElementById('accNo').value=d.accNo;}
+    if(d.accSuffix){S.accSuffix=d.accSuffix;document.getElementById('accSuffix').value=d.accSuffix;}
     if(d.apiEnv){S.apiEnv=d.apiEnv;document.getElementById('apiEnv').value=d.apiEnv;}
     if(d.bots)S.bots=d.bots;if(d.history)S.history=d.history;
   }catch(e){}
